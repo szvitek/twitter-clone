@@ -20,6 +20,7 @@ model Tweet {
     user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     likes Like[]
 
+    @@unique([createdAt, id])
     @@index([userId])
 }
 
@@ -75,10 +76,10 @@ model User {
     sessions      Session[]
 
     // non-next auth stuff
-    tweets        Tweet[]
-    likes         Like[]
-    followers     User[] @relation(name: "Followers") // prisma auto creates the joint table for it
-    follows       User[] @relation(name: "Followers")
+    tweets    Tweet[]
+    likes     Like[]
+    followers User[]  @relation(name: "Followers") // prisma auto creates the joint table for it
+    follows   User[]  @relation(name: "Followers")
 }
 
 model VerificationToken {

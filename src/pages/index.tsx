@@ -1,4 +1,10 @@
+import InfiniteTweetList from "~/components/InfiniteTweetList";
 import NewTweetForm from "~/components/NewTweetForm";
+
+const RecentTweets = () => {
+  const tweets = [];
+  return <InfiniteTweetList tweets={tweets} />
+}
 
 export default function Home() {
   return (
@@ -7,6 +13,7 @@ export default function Home() {
         <h1 className="mb-2 px-4 text-lg font-bold">Home</h1>
       </header>
       <NewTweetForm />
+      <RecentTweets />
     </>
   );
 }
