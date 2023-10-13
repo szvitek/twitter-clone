@@ -19,7 +19,7 @@ type InfiniteTweetListProps = {
   tweets?: Tweet[];
   isError: boolean;
   isLoading: boolean;
-  hasMore: boolean;
+  hasMore: boolean | undefined;
   fetchNewTweets: () => Promise<unknown>;
 };
 
@@ -34,7 +34,12 @@ type HeartButtonProps = {
   likeCount: number;
 };
 
-const HeartButton = ({ isLoading, onClick, likedByMe, likeCount }: HeartButtonProps) => {
+const HeartButton = ({
+  isLoading,
+  onClick,
+  likedByMe,
+  likeCount,
+}: HeartButtonProps) => {
   const session = useSession();
   const HeartIcon = likedByMe ? VscHeartFilled : VscHeart;
 
@@ -79,11 +84,43 @@ const TweetCard = ({
   likeCount,
   likedByMe,
 }: Tweet) => {
-  const toggleLike = api.tweet.toggleLike.useMutation()
-  
+  const trpcUtils = api.useContext();
+  const toggleLike = api.tweet.toggleLike.useMutation({
+    onSuccess: ({ addedLike }) => {
+      // await trpcUtils.tweet.infiniteFeed.invalidate(); // this is how to invalidate all infiniteFeed data - not really ideal
+
+      // better solution if we find the liked tweet and update it manually
+      const updateData: Parameters<
+        typeof trpcUtils.tweet.infiniteFeed.setInfiniteData
+      >[1] = (oldData) => {
+        if (oldData == null) return;
+
+        const countModifier = addedLike ? 1 : -1;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            tweets: page.tweets.map((tweet) => {
+              if (tweet.id === id) {
+                return {
+                  ...tweet,
+                  likeCount: tweet.likeCount + countModifier,
+                  likedByMe: addedLike,
+                };
+              }
+
+              return tweet;
+            }),
+          })),
+        };
+      };
+      trpcUtils.tweet.infiniteFeed.setInfiniteData({}, updateData);
+    },
+  });
+
   const handleToggleLike = () => {
-    toggleLike.mutate({ id })
-  }
+    toggleLike.mutate({ id });
+  };
 
   return (
     <li className="flex gap-4 border-b px-4 py-4">
@@ -104,7 +141,12 @@ const TweetCard = ({
           </span>
         </div>
         <p className="whitespace-pre-wrap">{content}</p>
-        <HeartButton onClick={handleToggleLike} isLoading={toggleLike.isLoading} likedByMe={likedByMe} likeCount={likeCount} />
+        <HeartButton
+          onClick={handleToggleLike}
+          isLoading={toggleLike.isLoading}
+          likedByMe={likedByMe}
+          likeCount={likeCount}
+        />
       </div>
     </li>
   );
@@ -114,7 +156,7 @@ const InfiniteTweetList = ({
   tweets,
   isError,
   isLoading,
-  hasMore,
+  hasMore = false,
   fetchNewTweets,
 }: InfiniteTweetListProps) => {
   if (isLoading) return <h1>Loading...</h1>;
