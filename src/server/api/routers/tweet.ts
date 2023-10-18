@@ -1,9 +1,9 @@
-import { Prisma } from "@prisma/client";
-import { inferAsyncReturnType } from "@trpc/server";
+import type { Prisma } from "@prisma/client";
+import type { inferAsyncReturnType } from "@trpc/server";
 import { z } from "zod";
 
 import {
-  createTRPCContext,
+  type createTRPCContext,
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
@@ -19,20 +19,23 @@ export const tweetRouter = createTRPCRouter({
       }),
     )
     .query(
-      async ({
-        input: { limit = 10, onlyFollowing = false, cursor },
-        ctx,
-      }) => {
-        const currentUserId = ctx.session?.user.id
+      async ({ input: { limit = 10, onlyFollowing = false, cursor }, ctx }) => {
+        const currentUserId = ctx.session?.user.id;
         return await getInfiniteTweets({
-          limit, ctx, cursor, whereClause: currentUserId == null || !onlyFollowing ? undefined : {
-            user: {
-              followers: {
-                some: { id: currentUserId }
-              }
-            }
-          }
-        })
+          limit,
+          ctx,
+          cursor,
+          whereClause:
+            currentUserId == null || !onlyFollowing
+              ? undefined
+              : {
+                  user: {
+                    followers: {
+                      some: { id: currentUserId },
+                    },
+                  },
+                },
+        });
       },
     ),
   create: protectedProcedure
